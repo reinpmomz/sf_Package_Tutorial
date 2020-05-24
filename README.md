@@ -1,6 +1,9 @@
 # sf_Package_Tutorial
 This is a tutorial covering the sf R package
 
+install.packages(c("tidyverse", "data.table", "fpp3","GGally","sugrrants", 
+                 "prophet", "rpart", "rpart.plot", "forecast", "gt"))
+
 ---
 title: "sf: A Tutorial"
 output: 
