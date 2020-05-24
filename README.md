@@ -1,6 +1,22 @@
 # sf_Package_Tutorial
 This is a tutorial covering the sf R package
 
+---
+title: "sf: A Tutorial"
+output: 
+    learnr::tutorial:
+      css: css/styles.css
+runtime: shiny_prerendered
+---
+
+
+```{r setup, include=FALSE}
+library(learnr)
+knitr::opts_chunk$set(echo = TRUE,
+                      comment = "",
+                      warning = FALSE)
+```
+
 ## Introduction
 
 This is a work-in-progress tutorial covering the `sf` R package. `sf` provides a powerful interface for R users to work with geospatial data stored in vector formats. 
