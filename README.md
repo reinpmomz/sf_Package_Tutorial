@@ -139,7 +139,7 @@ bus_routes$geometry[[1]]
 ### Chicago Libraries
 
 
-Last, we will read in a data file with the locations of vehicles that were found abandoned in Chicago in 2016. 
+Last, we will read in a data file with the locations of libraries in Chicago. 
 
 ```{r}
 libraries <- st_read("https://raw.githubusercontent.com/thisisdaryn/R_tutorials/master/data/Chicago_Libraries.geojson")
@@ -210,7 +210,7 @@ plot(comms)
 `plot` creates a set of maps: one for each attribute in the data that is not the geometry. The interpretability or usefulness of these plots will vary with the nature of the attributes. 
 
 
-**Exercise**: Use `plot` to generate plots of *bus_routes* and *vehicles_pts*. How should the resulting plots be interpreted? 
+**Exercise**: Use `plot` to generate plots of *bus_routes* and *libraries*. How should the resulting plots be interpreted? 
 
 ```{r sfplotex, exercise = TRUE}
 
@@ -269,11 +269,6 @@ ggplot(data = comms) +
 
 ```
 
-```{r plotroutes-solution}
-ggplot(data = bus_routes) +
-  geom_sf()
-
-```
 
 
 **Exercise**: Make a plot showing the locations of all libraries in Chicago
@@ -282,17 +277,6 @@ ggplot(data = bus_routes) +
 ```{r plotlibraries, exercise = TRUE}
 
 ```
-
-```{r plotlibraries-solution}
-ggplot(data = libraries) +
-  geom_sf()
-```
-
-
-
-
-
-
 
 
 
@@ -324,12 +308,6 @@ ggplot(data = small_map) +
 
 **Exercise**: In the box below, write code to make a map showing only the <i>111A</i> bus route:
 
-```{r plot111A, exercise = TRUE}
-route111a <- filter(routes_wgs, ROUTE == "111A")
-
-ggplot(data = route111a) + 
-  geom_sf()
-```
 
 ```{r plot111A-solution, exercise = TRUE}
 route111A <- filter(wgs_routes, ROUTE == "111A")
@@ -455,10 +433,6 @@ Here the output is very similar but there is one more community in the list of n
 
 
 
-
-
-
-
 **Question: Which libraries does each community area cover?**
 
 Here we can use `st_covers`:
@@ -481,39 +455,6 @@ This reflects the same information but presents the information
 The previous examples show only some of the binary predicate functions available in `sf`. Each of the binary predicate functions not discussed use similar syntax and are named in way that their use cases are self-hinting - if not self-evident. 
 
 
-## Brief detour: A note about left joins and inner joins
-
-Before we move on to spatial joins, we will review briefly the concepts of left joins and inner joins. These may be unfamiliar to you. Here we will take time to give a small example using a data set that is not geospatial (though it does contain geographic information).
-
-For this example we will read in two data sets with the populations and areas of some countries respectively:
-
-```{r message = FALSE}
-library(readr)
-areas <- read_csv("https://raw.githubusercontent.com/thisisdaryn/data/master/Areas.csv")
-populations <- read_csv("https://raw.githubusercontent.com/thisisdaryn/data/master/Populations.csv")
-```
-
-```{r}
-areas
-```
-
-We can see that both of these tables have a field named *Country*. Some countries are listed in both tables while others are only listed in one of the tables.
-
-First, we will do a left join using `dplyr::left_join`:
-
-```{r}
-left_join(populations, areas)
-```
-
-We can see that the left join keeps all the countries in the *populations* table in the final output even if there's no available area information for those countries. Countries that are only in the *areas* table do not show up at all in the final table.
-
-Now, let's try an inner join using `dplyr::inner_join`:
-
-```{r}
-inner_join(populations, areas)
-```
-
-Here we see that only the countries that are in both tables show up in the final table. 
 
 The spatial joins we do using `sf::st_join` will be analogous to either the left joins or the inner joins we have done here.
 

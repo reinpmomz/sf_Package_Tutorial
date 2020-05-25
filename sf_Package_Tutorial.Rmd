@@ -1,0 +1,315 @@
+---
+title: "sf_Package_Tutorial"
+author: "Reinp"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: 
+    keep_md: yes
+  word_document: default
+---
+
+# R Programming
+
+## Set Chunk requirements
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE, message = TRUE, warning = FALSE)
+#echo=FALSE indicates that the code will not be shown in the final document 
+#(though any results/output would still be displayed).
+#include=FALSE to have the chunk evaluated, but neither the code nor its output displayed
+# warning=FALSE and message=FALSE suppress any R warnings or messages from being included 
+#in the final document
+```
+
+
+## Load Relevant Packages and Data Set
+```{r}
+library(sf)
+
+# Reading our dataset
+setwd('E:/Documents/Reinp/GitHub Respositories/sf_Package_Tutorial')
+
+comms <- st_read("Data-Chicago-geo/Chicago_Community_Areas.geojson")
+
+bus_routes <- st_read("Data-Chicago-geo/CTA_Bus_Routes.geojson")
+
+libraries <- st_read("Data-Chicago-geo/Chicago_Libraries.geojson")
+
+
+View(comms)
+View(bus_routes)
+View(libraries)
+
+print(comms)
+
+print(bus_routes)
+
+print(libraries)
+```
+
+## access the coordinates of a single geometry
+
+```{r}
+
+comms
+
+bus_routes
+
+libraries
+
+class(comms)
+class(bus_routes)
+class(libraries)
+
+comms$geometry[[1]]
+bus_routes$geometry[[1]]
+libraries$geometry[[1]]
+
+
+
+```
+
+
+## sf built-in plotting
+```{r}
+plot(comms)
+
+plot(bus_routes)
+
+plot(libraries)
+
+```
+
+## Getting the CRS and bounding box of an sf object
+```{r}
+st_crs(comms)
+st_bbox(comms)
+
+st_crs(bus_routes)
+st_bbox(bus_routes)
+
+st_crs(libraries)
+st_bbox(libraries)
+
+```
+
+
+## Transforming data from one CRS to another 
+
+```{r}
+## transform the bus routes from NAD83 to WGS84 
+wgs_routes <- st_transform(bus_routes, st_crs(comms))
+
+wgs_routes$geometry[[1]]
+print(wgs_routes)
+
+plot(wgs_routes)
+```
+
+##  Plotting using ggplot2 
+
+```{r}
+
+## Using ggplots to plot the different objects 
+library(ggplot2)
+
+
+communities_plot <- ggplot(data = comms) +
+  geom_sf()+
+  labs(x="longitude", y="latitude")
+communities_plot
+
+routes_plot <- ggplot(data = wgs_routes) + 
+  geom_sf() + 
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(x="longitude", y="latitude")
+routes_plot
+
+libraries_plot <- ggplot(data = libraries) + 
+  geom_sf() +
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(x="longitude", y="latitude")
+libraries_plot
+
+ggplot() + 
+  geom_sf(data = comms) +
+  geom_sf(data = libraries) + 
+  labs(x="longitude", y="latitude")
+
+```
+
+
+## Subsetting the data
+
+```{r}
+library(dplyr)
+
+## Subsetting the communities
+comms_group <- c("ROGERS PARK", "WEST RIDGE", "LINCOLN SQUARE", "EDGEWATER")
+
+
+small_map <- filter(comms, community %in% comms_group)
+
+#alternatively we could have used the following base R syntax
+#small_map <- comms[comms$community %in% community_group, ]
+
+
+ggplot(data = small_map) +
+  geom_sf()+
+  geom_sf_text(aes(label = community))+
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(x="longitude", y="latitude") # maps only those 4 communities 
+
+
+ggplot() + 
+  geom_sf(data = comms) + 
+  geom_sf(data = small_map, fill = 'blue')+
+  labs(x="longitude", y="latitude")
+
+
+
+## plot only bus route 111A?
+
+route111A <- subset(wgs_routes, ROUTE == "111A")
+
+ggplot(data = route111A) +
+  geom_sf()+
+  labs(x="longitude", y="latitude")+
+  theme(axis.text.x = element_text(angle = 90)) # maps only 111A route 
+
+
+ggplot() + 
+  geom_sf(data = comms) + 
+  geom_sf(data = route111A, color = 'red')+
+  labs(x="longitude", y="latitude")
+
+
+route111A_alt <- wgs_routes[wgs_routes$ROUTE == "111A", ]
+```
+
+
+## Binary Predicate functions
+
+```{r}
+### st_intersects with x and y inputs
+
+#For each bus routes, can we identify the community area that intersect with it
+routes_comms <- st_intersects(wgs_routes, comms)
+
+#For each community area, can we identify the bus routes that intersect with it
+comms_routes <- st_intersects(comms, wgs_routes) 
+
+View(routes_comms)
+View(comms_routes)
+
+### st_intersects with x input only
+
+st_intersects(comms) #each community is listed as intersecting with itself.
+st_intersects(wgs_routes) #each bus route is listed as intersecting with itself.
+
+
+###  st_touches
+st_touches(comms)
+
+#which community areas border the Albany Park community?
+
+albany_park <- filter(comms, community == "ALBANY PARK")
+albany_neighbours <- st_touches(albany_park, comms)
+albany_neighbours
+
+comms$community[albany_neighbours[[1]]] #get the names of these neighbouring areas
+
+#the output `st_intersects` is very similar but there is one more community in the 
+#list of neighbors. This is the Albany Park community itself.
+
+albany_neighbours1 <- st_intersects(albany_park, comms)
+albany_neighbours1
+
+comms$community[albany_neighbours1[[1]]]
+
+
+###  st_covers
+st_covers(comms, libraries)
+
+st_covered_by(libraries, comms)
+```
+
+## Spatial Joins 
+```{r}
+
+#defaults left=TRUE i.e. a left join is performed
+#left=FALSE, inner join is performed
+#`st_join` retains the geometry of the first input *x*
+
+## Joining libraries and communites 
+
+libs_comms <- st_join(libraries, comms, left = TRUE)
+
+## Joining communities and libraries
+
+comms_libs <- st_join(comms, libraries, left = TRUE)
+
+
+#communities with no libraries? 
+
+no_libraries <- filter(comms_libs, is.na(name_))
+
+ggplot(data = no_libraries) + 
+  geom_sf()+
+  labs(x="longitude", y="latitude")
+
+ggplot() + 
+  geom_sf(data = comms) + 
+  geom_sf(data = no_libraries, fill = 'blue') +
+  labs(x="longitude", y="latitude")
+
+
+#communities where route 2 passes through
+
+route2 <- filter(wgs_routes, ROUTE == "2")
+comms_route2 <- st_join(comms, route2, left = FALSE)
+
+ggplot() + 
+  geom_sf(data = comms) + 
+  geom_sf(data = comms_route2, fill = "red") +
+  labs(x="longitude", y="latitude") +
+  geom_sf(data = route2, color = "yellow")+ 
+  geom_sf_text(data = comms_route2, aes(label = community), size=1.8)
+
+
+comms_route2int <- st_join(comms, route2, st_intersects, left = FALSE)
+
+ggplot() + 
+  geom_sf(data = comms) + 
+  geom_sf(data = comms_route2int, fill = "blue") +
+  labs(x="longitude", y="latitude") +
+  geom_sf(data = route2, color = "green")
+
+```
+
+## Spatial aggregation
+
+```{r}
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
